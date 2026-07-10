@@ -96,3 +96,28 @@ def test_option_underlying_routes_overview_multi_code(monkeypatch):
     cap = {}; _patch3(monkeypatch, cap)
     options.get_option_underlying(["US.AAPL", "US.TSLA"], view="overview")
     assert cap["fn"] == "get_option_underlying_overview"
+
+
+from futu_opend_mcp.tools import plates, industrial_chains, ipo
+
+
+def _patch4(monkeypatch, capture):
+    for mod in (plates, industrial_chains, ipo):
+        monkeypatch.setattr(mod.connection, "get_context", lambda: None)
+    def fake_run(fn, *a, **k):
+        capture["fn"] = fn.__name__; capture["args"] = a; capture["kwargs"] = k
+        return {"data": []}
+    for mod in (plates, industrial_chains, ipo):
+        monkeypatch.setattr(mod.skill_runner, "_run_skill_json", fake_run)
+
+
+def test_industrial_chains_routes_detail(monkeypatch):
+    cap = {}; _patch4(monkeypatch, cap)
+    industrial_chains.get_industrial_chains(market="HK", view="detail", chain_id=123)
+    assert cap["fn"] == "get_industrial_chain_detail"
+
+
+def test_industrial_plate_routes_stocks(monkeypatch):
+    cap = {}; _patch4(monkeypatch, cap)
+    industrial_chains.get_industrial_plate(plate_id=123, view="stocks")
+    assert cap["fn"] == "get_industrial_plate_stock"
