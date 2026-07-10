@@ -71,3 +71,28 @@ def test_short_data_routes_interest(monkeypatch):
     cap = {}; _patch2(monkeypatch, cap)
     short.get_short_data("HK.00700", data_type="interest")
     assert cap["fn"] == "get_short_interest"
+
+
+from futu_opend_mcp.tools import options, capital, derivatives
+
+
+def _patch3(monkeypatch, capture):
+    for mod in (options, capital, derivatives):
+        monkeypatch.setattr(mod.connection, "get_context", lambda: None)
+    def fake_run(fn, *a, **k):
+        capture["fn"] = fn.__name__; capture["args"] = a; capture["kwargs"] = k
+        return {"data": []}
+    for mod in (options, capital, derivatives):
+        monkeypatch.setattr(mod.skill_runner, "_run_skill_json", fake_run)
+
+
+def test_option_underlying_routes_volatility(monkeypatch):
+    cap = {}; _patch3(monkeypatch, cap)
+    options.get_option_underlying("US.AAPL", view="volatility", begin="2025-01-01", end="2025-06-01")
+    assert cap["fn"] == "get_option_underlying_his_volatility"
+
+
+def test_option_underlying_routes_overview_multi_code(monkeypatch):
+    cap = {}; _patch3(monkeypatch, cap)
+    options.get_option_underlying(["US.AAPL", "US.TSLA"], view="overview")
+    assert cap["fn"] == "get_option_underlying_overview"
