@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "futu-opend-mcp"
+version = "0.1.0"
+description = "MCP server exposing Futu OpenD read-only investment-research quote APIs."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "eli" }]
+keywords = ["futu", "opend", "mcp", "stock", "finance"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+dependencies = [
+  "futu-api>=10.5.6508",
+  "mcp>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff>=0.5"]
+
+[project.scripts]
+futu-opend-mcp = "futu_opend_mcp.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/futu_opend_mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: needs a live OpenD gateway"]

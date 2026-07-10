@@ -5,3 +5,9 @@ __pycache__/
 dist/
 build/
 .pytest_cache/
+*.pyc
+*.pyo
+.env.local
+*.log
+.mypy_cache/
+.ruff_cache/
