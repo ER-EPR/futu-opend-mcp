@@ -152,3 +152,18 @@ def test_fed_watch_routes_dot_plot(monkeypatch):
     cap = {}; _patch5(monkeypatch, cap)
     macro.get_fed_watch(view="dot_plot")
     assert cap["fn"] == "get_fed_watch_dot_plot"
+
+
+from futu_opend_mcp.tools import diagnostics
+
+
+def _patch6(monkeypatch, capture):
+    monkeypatch.setattr(diagnostics.connection, "get_context", lambda: None)
+    monkeypatch.setattr(diagnostics.skill_runner, "_run_skill_json",
+                        lambda fn, *a, **k: capture.setdefault("fns", []).append(fn.__name__) or {"data": []})
+
+
+def test_quota_status_aggregates_three_sources(monkeypatch):
+    cap = {}; _patch6(monkeypatch, cap)
+    diagnostics.get_quota_status()
+    assert set(cap["fns"]) == {"get_user_info", "get_history_kl_quota", "get_global_state"}
