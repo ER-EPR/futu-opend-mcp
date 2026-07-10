@@ -94,7 +94,7 @@ calling the SDK directly via `common.py` helpers (the same vendored helpers).
 
 ### 3.4 Merging duplicate tools for a simpler LLM entry point
 Upper-layer wrappers combine similar official scripts behind one tool with a discriminating
-parameter, so the LLM sees fewer, more obvious entry points. Six merges (each keeps the other
+parameter, so the LLM sees fewer, more obvious entry points. Nine merges (each keeps the other
 tools in its category as separate, standalone tools):
 - `get_corporate_actions(code, action_type)` ← `dividends` + `buybacks` + `stock_splits`
 - `get_insider_data(code, data_type)` ← `insider_holder_list` + `insider_trade_list`
@@ -103,6 +103,18 @@ tools in its category as separate, standalone tools):
 - `get_macro_indicator` ← `macro_indicator_list` + `macro_indicator_history`
 - `get_fed_watch` ← `fed_watch_target_rate` + `fed_watch_dot_plot`
 - `get_quota_status` ← `user_info` + `history_kl_quota` + `global_state` (a self-diagnostics tool)
+- `get_institution_holdings(market, institution_id, view)` ← `institution_holding_list` +
+  `institution_holding_change` (identical arg shape; `view=list|change`). The other
+  by-institution tools stay separate: `institution_list`, `institution_profile`,
+  `institution_distribution`.
+- `get_industrial_chains(market, view, ...)` ← `industrial_chain_list` + `_detail` + `_by_plate`
+  (`view=list|detail|by_plate` - browse chains / one chain's upstream-downstream / chains for a
+  plate). Separately `get_industrial_plate(plate_id, view)` ← `industrial_plate_info` +
+  `_stock` (`view=info|stocks`).
+- `get_option_underlying(view, ...)` ← `option_underlying_his_volatility` + `_his_statistic` +
+  `_overview` (`view=volatility|statistic|overview` - IV/HV series / volume-OI-PCR series /
+  multi-code latest snapshot). Single-code time-series take a `code`; `overview` takes a
+  multi-code list.
 
 ## 4. Connection strategy
 
@@ -112,12 +124,13 @@ and closed on shutdown. Rationale: rapid open/close of contexts makes OpenD slow
 (per the skill pack and the existing tracker). All tools are read-only, so one quote context
 suffices — no trade context.
 
-## 5. Tool catalogue (~40 tools, merged)
+## 5. Tool catalogue (~50 tools, merged)
 
 All tools read-only; no trade/subscribe. Rules applied: drop stale V1 (`get_stock_filter`,
 keep V2 `get_stock_screen`); keep the most comprehensive interface per info type; merge
 similar. `get_stock_quote` (needs subscribe) is replaced by the subscription-free
-`get_snapshot`.
+`get_snapshot`. A tool was excluded only if it is *genuinely replaced* or *out of scope*;
+useful-but-overlapping ranking/screeners are deferred to v2 (§5.1), not dropped as useless.
 
 | Category | Tool | ← Official script(s) | Note |
 |---|---|---|---|
@@ -128,28 +141,46 @@ similar. `get_stock_quote` (needs subscribe) is replaced by the subscription-fre
 | Research/valuation | `get_analyst_consensus` `get_morningstar_report` `get_valuation_detail` | _analyst_consensus / _morningstar_report / _valuation_detail | target+rating / fair value+moat / PE-PB-PS percentile |
 | Corporate actions | `get_corporate_actions` | **dividends + buybacks + stock_splits** | **3→1 merge**, action_type param |
 | Shareholders | `get_shareholder_overview` `get_holding_changes` `get_holder_detail` `get_institutional_holdings` `get_insider_data` | overview / holding_changes / holder_detail / institutional / **insider_holder_list+insider_trade_list** | insider **2→1**, data_type param (US only) |
-| Profile | `get_company_profile` `get_company_executives` | get_company_profile / get_company_executives | |
+| Profile | `get_company_profile` `get_company_executives` `get_executive_background` `get_operational_efficiency` | get_company_profile / get_company_executives / get_company_executive_background / get_company_operational_efficiency | executive_background needs a leader_name from get_company_executives (2-step); operational_efficiency = headcount, revenue/profit per employee |
 | Capital | `get_capital_flow` `get_capital_distribution` `get_top_brokers` | get_capital_flow / _distribution / get_top_ten_buy_sell_brokers | |
 | Short | `get_short_data` | **daily_short_volume + short_interest** | **2→1 merge**, type param |
 | Options/derivatives | `resolve_option_code` `get_option_chain` `get_option_expiration_date` `get_option_quote` `get_option_volatility` `get_option_strategy_analysis` | resolve_option_code / get_option_chain / _expiration_date / get_option_quote / get_option_volatility / get_option_strategy_analysis | covers the "derivative price changes" goal |
+| Option underlying IV/HV | `get_option_underlying` | **underlying_his_volatility + underlying_his_statistic + underlying_overview** | **3->1 merge**, view param (volatility IV/HV series / statistic vol-OI-PCR series / multi-code snapshot) |
 | Warrant/futures | `get_warrant` `get_future_info` `get_reference_securities` | get_warrant / get_future_info / get_referencestock_list | reference = spot↔warrant/future/option discovery |
 | Plates | `get_plate_list` `get_plate_stocks` `get_owner_plate` | get_plate_list / get_plate_stock / get_owner_plate | |
+| Industrial chains | `get_industrial_chains` `get_industrial_plate` | **chain_list+chain_detail+chain_by_plate** / **industrial_plate_info+industrial_plate_stock** | 2 merge tools; chains=`view=list|detail|by_plate`, plate=`view=info|stocks` |
+| Institutions (by-institution) | `get_institution_list` `get_institution_profile` `get_institution_holdings` `get_institution_distribution` | institution_list / institution_profile / **holding_list+holding_change** / institution_distribution | holdings **2->1 merge** `view=list|change`; by-institution direction (which stocks an institution holds) - distinct from by-stock `get_institutional_holdings` |
 | Macro | `get_economic_calendar` `get_macro_indicator` `get_fed_watch` | get_economic_calendar / **macro_indicator_list+history** / **fed_watch_target_rate+dot_plot** | 2 merges |
+| Dividends | `get_dividend_calendar` | get_dividend_calendar | all-market forward dividend/ex-date calendar; distinct from per-stock `get_corporate_actions` (which is per-code historical) |
 | IPO | `get_ipo_list` | get_ipo_list | |
 | Diagnostics | `get_quota_status` | **user_info + history_kl_quota + global_state** | **3→1 merge**; helps LLM self-diagnose permission/quota errors |
 
-**Deliberately excluded in v1:** all ranking/heat-list tools (hot_list, top_movers,
-period_change, pre/after/overnight rank, short_selling_rank, earnings_beat_rank, dividend_rank,
-high_dividend_soe — too overlapping), ARK tools, industrial chains, standalone institution tools
-(partly covered by shareholders_institutional), technical indicators (list/calc),
-user-security/price-reminder (personal, not research), executive_background,
-operational_efficiency, dividend calendar, option strategy basis/spread, underlying IV/HV time
-series, and `get_stock_quote` (subscription-based, replaced by `get_snapshot`).
+### 5.1 Deferred to v2 (useful but overlapping, not dropped as useless)
+
+These are genuinely useful but heavily overlap each other and with `screen_stocks` (V2), so they
+are a natural second phase rather than v1:
+- **Market-wide rankers:** `hot_list`, `top_movers`, `period_change_rank`, `us_pre_market_rank`,
+  `us_after_hours_rank`, `us_overnight_rank`, `short_selling_rank`, `earnings_beat_rank`,
+  `dividend_rank`, `high_dividend_soe_rank`, `option_underlying_rank`, `option_rank`.
+- **Niche screeners:** `option_zero_dte_screener/contract`, `option_earnings_screener`,
+  `option_seller_screener`, `option_event` (+alert set/get), ARK tools (`ark_fund_holding`,
+  `ark_active_transaction`, `ark_stock_dynamic`).
+- **Client-side tech indicators:** `get_indicator_list` / `get_indicator_calc_result` (MA/MACD/RSI
+  computed from klines; `get_kline` already supplies raw OHLCV, so the model can compute or this
+  lands in v2).
+- **Option-construction helpers:** `option_strategy` (legs) / `option_strategy_spread` -
+  `option_strategy_analysis` (kept) already takes legs and prices them.
+
+**Genuinely excluded (replaced or out of scope), not in v1 or v2:**
+- `get_stock_quote` -> replaced by subscription-free `get_snapshot`.
+- `get_stock_filter` (V1) -> replaced by V2 `get_stock_screen`.
+- `user_security*` / `set|get_price_reminder` -> personal watchlist/reminder, not research;
+  out of scope.
 
 ## 6. Migrating SKILL.md guidance into tool descriptions (skill vs tool)
 
 A skill's `SKILL.md` is a one-shot prompt that drives a multi-step plan and may be long/procedural.
-An MCP tool description is *scanned for selection* among ~40 siblings and must fit efficiently in a
+An MCP tool description is *scanned for selection* among ~50 siblings and must fit efficiently in a
 tool-use context. So we **distill, not copy**:
 
 - **Trigger phrases** ("当用户问'分红'、'派息'时") → the most valuable migration; folded into each
@@ -234,5 +265,6 @@ futu-opend-mcp/
         ├── quote.py  search.py  financials.py  research.py
         ├── corporate_actions.py  shareholders.py  profile.py  capital.py
         ├── short.py  options.py  derivatives.py  plates.py  macro.py  ipo.py
+        ├── industrial_chains.py  institutions.py  dividends.py
         └── diagnostics.py
 ```
