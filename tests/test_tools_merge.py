@@ -121,3 +121,34 @@ def test_industrial_plate_routes_stocks(monkeypatch):
     cap = {}; _patch4(monkeypatch, cap)
     industrial_chains.get_industrial_plate(plate_id=123, view="stocks")
     assert cap["fn"] == "get_industrial_plate_stock"
+
+
+from futu_opend_mcp.tools import institutions, macro, dividends
+
+
+def _patch5(monkeypatch, capture):
+    for mod in (institutions, macro, dividends):
+        monkeypatch.setattr(mod.connection, "get_context", lambda: None)
+    def fake_run(fn, *a, **k):
+        capture["fn"] = fn.__name__; capture["args"] = a; capture["kwargs"] = k
+        return {"data": []}
+    for mod in (institutions, macro, dividends):
+        monkeypatch.setattr(mod.skill_runner, "_run_skill_json", fake_run)
+
+
+def test_institution_holdings_routes_change(monkeypatch):
+    cap = {}; _patch5(monkeypatch, cap)
+    institutions.get_institution_holdings(market="US", institution_id=123, view="change")
+    assert cap["fn"] == "get_institution_holding_change"
+
+
+def test_macro_indicator_routes_history(monkeypatch):
+    cap = {}; _patch5(monkeypatch, cap)
+    macro.get_macro_indicator(view="history", indicator_id=1)
+    assert cap["fn"] == "get_macro_indicator_history"
+
+
+def test_fed_watch_routes_dot_plot(monkeypatch):
+    cap = {}; _patch5(monkeypatch, cap)
+    macro.get_fed_watch(view="dot_plot")
+    assert cap["fn"] == "get_fed_watch_dot_plot"
