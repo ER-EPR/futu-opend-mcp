@@ -28,6 +28,48 @@ uvx mcpo --port 8000 -- futu-opend-mcp
 # OpenAPI at http://localhost:8000, docs at /docs
 ```
 
+### MCP JSON config
+
+Add to `~/.claude/settings.json`, `.mcp.json`, or Claude Desktop config:
+
+**Remote OpenD (with encryption):**
+```json
+{
+  "mcpServers": {
+    "futu-opend": {
+      "command": "uvx",
+      "args": ["futu-opend-mcp"],
+      "env": {
+        "FUTU_OPEND_HOST": "your-opend-host",
+        "FUTU_OPEND_PORT": "11111",
+        "FUTU_OPEND_ENCRYPT": "true",
+        "FUTU_OPEND_RSA_KEY": "-----BEGIN RSA PRIVATE KEY-----\\nMIIC...\\n-----END RSA PRIVATE KEY-----"
+      }
+    }
+  }
+}
+```
+
+**Local OpenD (no encryption):**
+```json
+{
+  "mcpServers": {
+    "futu-opend": {
+      "command": "uvx",
+      "args": ["futu-opend-mcp"],
+      "env": {
+        "FUTU_OPEND_ENCRYPT": "false"
+      }
+    }
+  }
+}
+```
+
+Extract the RSA key for the env var:
+```bash
+docker exec futu-opend cat /rsa/rsa_private_pkcs1.pem | awk '{printf "%s\\n", $0}'
+```
+
 ## Configuration (env vars)
 
 | Var | Default | Purpose |
