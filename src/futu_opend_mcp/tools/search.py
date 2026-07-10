@@ -1,0 +1,35 @@
+from __future__ import annotations
+from .. import connection, skill_runner
+from ._base import mcp, skill_fn
+
+
+@mcp.tool()
+def search_quote(keyword: str, max_count: int = 10) -> dict:
+    """Search securities/ETFs/plates by keyword - 搜索股票/搜代码/search quote.
+    Returns market/code/name/sec_type. Rate-limited 10/30s. If unsure of a
+    stock code, call this first.
+    """
+    connection.get_context()
+    return skill_runner._run_skill_json(skill_fn("quote", "get_search_quote"), keyword, max_count=max_count)
+
+
+@mcp.tool()
+def search_news(keyword: str, max_count: int = 10, news_sub_type: str = "ALL") -> dict:
+    """Search news/announcements/ratings by keyword - 搜索资讯/搜新闻/搜公告.
+    news_sub_type: ALL/NEWS(notice=公告)/NOTICE/RATING. Returns title/source/
+    publish_time/related_securities/url. Rate-limited 10/30s.
+    """
+    connection.get_context()
+    return skill_runner._run_skill_json(
+        skill_fn("quote", "get_search_news"), keyword,
+        max_count=max_count, news_sub_type=news_sub_type,
+    )
+
+
+@mcp.tool()
+def get_stock_info(codes: list[str]) -> dict:
+    """Get stock basic+snapshot info (name, lot size, market cap, PE) - 股票信息/
+    基本信息. Underlying uses get_market_snapshot; up to 400 codes.
+    """
+    connection.get_context()
+    return skill_runner._run_skill_json(skill_fn("quote", "get_stock_info"), codes)
