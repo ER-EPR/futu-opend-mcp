@@ -33,3 +33,15 @@ def get_stock_info(codes: list[str]) -> dict:
     """
     connection.get_context()
     return skill_runner._run_skill_json(skill_fn("quote", "get_stock_info"), codes)
+
+
+@mcp.tool()
+def screen_stocks(market: str, config_json: str, page_count: int = 200) -> dict:
+    """Screen stocks by multi-factor config (V2) - 条件选股/筛选/screen stocks. market: HK/US/SH/
+    SZ/SG/MY/JP. config_json: a JSON string with filters/retrieves/sort (see Futu V2 screen schema).
+    Values are RAW (OpenD scales): PRICE 10.0, MARKET_CAP 1e10, change% 5.0 (not 0.05).
+    """
+    import json as _json
+    connection.get_context()
+    cfg = _json.loads(config_json)
+    return skill_runner._run_skill_json(skill_fn("quote", "get_stock_screen"), market, cfg, page_count=page_count)

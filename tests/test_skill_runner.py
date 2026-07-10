@@ -1,5 +1,4 @@
 import json
-import pytest
 from futu_opend_mcp import skill_runner
 
 

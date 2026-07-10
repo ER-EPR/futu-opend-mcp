@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Literal
 from .. import connection, skill_runner
 from ._base import mcp, skill_fn
 

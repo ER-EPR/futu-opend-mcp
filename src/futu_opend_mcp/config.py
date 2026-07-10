@@ -5,7 +5,6 @@ No `futu` imports here - keep this pure so it is unit-testable without OpenD.
 import os
 import tempfile
 from dataclasses import dataclass
-from pathlib import Path
 
 
 class ConfigError(RuntimeError):

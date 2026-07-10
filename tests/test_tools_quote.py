@@ -1,4 +1,3 @@
-import json
 from futu_opend_mcp.tools import quote
 
 

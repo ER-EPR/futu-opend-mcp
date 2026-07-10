@@ -36,3 +36,12 @@ packages = ["src/futu_opend_mcp"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = ["integration: needs a live OpenD gateway"]
+
+[tool.ruff]
+extend-exclude = ["src/futu_opend_mcp/_skill"]
+line-length = 100
+
+[tool.ruff.lint]
+# E402 disabled: tool modules intentionally import after _base for side effects.
+# E702 disabled: compact `cap = {}; _patch(...)` test setup lines are intentional.
+ignore = ["E402", "E702"]
