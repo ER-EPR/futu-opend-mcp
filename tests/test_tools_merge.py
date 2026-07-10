@@ -40,3 +40,34 @@ def test_corporate_actions_bad_action_errors(monkeypatch):
     _patch(monkeypatch, cap)
     r = corporate_actions.get_corporate_actions("HK.00700", action_type="nope")
     assert r["_skill_error"] is True
+
+
+from futu_opend_mcp.tools import shareholders, short, profile
+
+
+def _patch2(monkeypatch, capture):
+    for mod in (shareholders, short, profile):
+        monkeypatch.setattr(mod.connection, "get_context", lambda: None)
+    def fake_run(fn, *a, **k):
+        capture["fn"] = fn.__name__; capture["args"] = a; capture["kwargs"] = k
+        return {"data": []}
+    for mod in (shareholders, short, profile):
+        monkeypatch.setattr(mod.skill_runner, "_run_skill_json", fake_run)
+
+
+def test_insider_data_routes_holder(monkeypatch):
+    cap = {}; _patch2(monkeypatch, cap)
+    shareholders.get_insider_data("US.AAPL", data_type="holders")
+    assert cap["fn"] == "get_insider_holder_list"
+
+
+def test_insider_data_routes_trade(monkeypatch):
+    cap = {}; _patch2(monkeypatch, cap)
+    shareholders.get_insider_data("US.AAPL", data_type="trades")
+    assert cap["fn"] == "get_insider_trade_list"
+
+
+def test_short_data_routes_interest(monkeypatch):
+    cap = {}; _patch2(monkeypatch, cap)
+    short.get_short_data("HK.00700", data_type="interest")
+    assert cap["fn"] == "get_short_interest"
