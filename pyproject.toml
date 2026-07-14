@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "futu-opend-mcp"
-version = "0.1.1"
+version = "0.1.2"
 description = "MCP server exposing Futu OpenD read-only investment-research quote APIs."
 readme = "README.md"
 requires-python = ">=3.10"
