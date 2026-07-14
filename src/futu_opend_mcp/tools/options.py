@@ -21,7 +21,7 @@ def resolve_option_code(underlying: str, expiry: str, strike: float,
     return skill_runner._run_skill_json(skill_fn("quote", "resolve_option_code"), underlying, expiry, strike, option_type)
 
 
-@mcp.tool()
+@mcp.tool(name="futu_get_option_chain")
 def get_option_chain(underlying: str, start: str | None = None,
                      end: str | None = None) -> dict:
     """Get option chain for an underlying - 期权链. HK/US stocks/ETF/index only.

@@ -26,7 +26,7 @@ def search_news(keyword: str, max_count: int = 10, news_sub_type: str = "ALL") -
     )
 
 
-@mcp.tool()
+@mcp.tool(name="futu_get_stock_info")
 def get_stock_info(codes: list[str]) -> dict:
     """Get stock basic+snapshot info (name, lot size, market cap, PE) - 股票信息/
     基本信息. Underlying uses get_market_snapshot; up to 400 codes.
